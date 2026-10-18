@@ -48,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Kill all port-forward connections and tunnels before terminating
         Task {
+            await appState.projectsState.shutdown()
             await appState.portForwardManager.killStuckProcesses()
             await appState.tunnelManager.stopAllTunnels()
             await MainActor.run {
@@ -135,6 +136,7 @@ struct PortKillerApp: App {
         // Menu Bar (quick access)
         MenuBarExtra {
             MenuBarView(state: state)
+                .onAppear { appDelegate.appState = state }
         } label: {
             Image(nsImage: menuBarIcon())
         }

@@ -90,8 +90,10 @@ struct ShortcutsSection: View {
     }
 }
 
-#Preview {
-    ShortcutsSection()
-        .padding()
-        .frame(width: 500)
+private struct ShortcutsSectionPreview: PreviewProvider {
+    static var previews: some View {
+        ShortcutsSection()
+            .padding()
+            .frame(width: 500)
+    }
 }

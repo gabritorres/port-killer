@@ -46,6 +46,9 @@ Download `.zip` from [GitHub Releases](https://github.com/productdevbook/port-ki
 ## Features
 
 ### Port Management
+
+* **Saved projects (macOS extension)** — Favorite project folders and start/stop
+  their saved commands from the menu bar. See [usage and development notes](PROJECTS.md).
 - 🔍 Auto-discovers all listening TCP ports
 - ⚡ One-click process termination (graceful + force kill)
 - 🔄 Auto-refresh with configurable interval

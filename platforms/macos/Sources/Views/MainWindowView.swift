@@ -16,7 +16,7 @@ struct MainWindowView: View {
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
         } detail: {
             contentView
-                .searchable(text: $state.filter.searchText, prompt: "Search ports, processes...")
+                .searchable(text: $state.filter.searchText, prompt: "Search ports, projects, processes...")
                 .navigationSplitViewColumnWidth(min: 300, ideal: 400, max: .infinity)
                 .inspector(isPresented: inspectorBinding) {
                     detailView
@@ -46,7 +46,7 @@ struct MainWindowView: View {
             Text("Are you sure you want to kill all \(appState.filteredPorts.count) processes? This action cannot be undone.")
         }
         .onKeyPress(.delete) {
-            if let port = appState.selectedPort {
+            if appState.selectedSidebarItem.showsPorts, let port = appState.selectedPort {
                 Task {
                     await appState.killPort(port)
                 }
@@ -55,7 +55,7 @@ struct MainWindowView: View {
             return .ignored
         }
         .onKeyPress(.deleteForward) {
-            if let port = appState.selectedPort {
+            if appState.selectedSidebarItem.showsPorts, let port = appState.selectedPort {
                 Task {
                     await appState.killPort(port)
                 }
@@ -67,7 +67,7 @@ struct MainWindowView: View {
 
     /// Pages that have something to show in the inspector pane
     private var hasInspector: Bool {
-        appState.selectedSidebarItem != .settings && appState.selectedSidebarItem != .sponsors
+        appState.selectedSidebarItem != .settings && appState.selectedSidebarItem != .sponsors && appState.selectedSidebarItem != .projects
     }
 
     /// Persisted inspector visibility, forced hidden on pages without inspector content
@@ -83,6 +83,8 @@ struct MainWindowView: View {
     @ViewBuilder
     private var contentView: some View {
         switch appState.selectedSidebarItem {
+        case .projects:
+            ProjectsView(manager: appState.projectsState, searchText: appState.filter.searchText)
         case .settings:
             SettingsView(state: appState, updateManager: appState.updateManager)
                 .id("settings")
