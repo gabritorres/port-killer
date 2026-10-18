@@ -10,13 +10,20 @@
 import SwiftUI
 
 struct MenuBarPortList: View {
+    @Environment(\.openWindow) private var openWindow
     let filteredPorts: [PortInfo]
     let filteredPortForwardConnections: [PortForwardConnectionState]
     let groupedByProcess: [ProcessGroup]
     let useTreeView: Bool
     @Binding var expandedProcesses: Set<String>
     @Binding var confirmingKillPort: String?
+    var searchText = ""
     @Bindable var state: AppState
+    @State private var expandedProjectGroups: Set<String> = []
+
+    private var projectSections: [ProjectSection] {
+        state.projectsState.sections(search: searchText, menuOnly: true)
+    }
 
     /// Named tunnels worth showing in the menu bar: currently running + any with
     /// local ingress (the ones the user likely wants quick access to). Filters out
@@ -32,9 +39,49 @@ struct MenuBarPortList: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
+                HStack(spacing: Spacing.sm) {
+                    Label("Projects", systemImage: "folder")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Manage…") {
+                        state.selectedSidebarItem = .projects
+                        openWindow(id: "main")
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                    .buttonStyle(.borderless).font(.caption)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                ForEach(projectSections) { section in
+                    if let name = section.name {
+                        DisclosureGroup(isExpanded: Binding(
+                            get: { expandedProjectGroups.contains(section.id) },
+                            set: { expanded in
+                                if expanded { expandedProjectGroups.insert(section.id) }
+                                else { expandedProjectGroups.remove(section.id) }
+                            }
+                        )) {
+                            ForEach(section.services) { project in
+                                ProjectRowView(project: project, manager: state.projectsState, compact: true)
+                            }
+                        } label: {
+                            ProjectGroupHeader(name: name, manager: state.projectsState, compact: true)
+                        }
+                        .padding(.horizontal, Spacing.md)
+                    } else {
+                        ForEach(section.services) { project in
+                            ProjectRowView(project: project, manager: state.projectsState, compact: true)
+                        }
+                    }
+                }
+                if projectSections.isEmpty && searchText.isEmpty {
+                    Text("Save favorite projects in Manage to start them here.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .padding(Spacing.lg)
+                }
                 // Local ports first — port killing is the app's primary job, so this
                 // is where the user's eye should land. Networking sections live below.
-                if filteredPorts.isEmpty && filteredPortForwardConnections.isEmpty && state.tunnelManager.tunnels.isEmpty && menuBarNamedTunnels.isEmpty {
+                if filteredPorts.isEmpty && filteredPortForwardConnections.isEmpty && state.tunnelManager.tunnels.isEmpty && menuBarNamedTunnels.isEmpty && projectSections.isEmpty {
                     emptyState
                 } else if !filteredPorts.isEmpty {
                     sectionHeader("Local Ports", icon: "network", color: .green)

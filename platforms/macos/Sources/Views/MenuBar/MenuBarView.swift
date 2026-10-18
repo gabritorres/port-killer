@@ -131,6 +131,7 @@ struct MenuBarView: View {
                 useTreeView: useTreeView,
                 expandedProcesses: $expandedProcesses,
                 confirmingKillPort: $confirmingKillPort,
+                searchText: searchText,
                 state: state
             )
 

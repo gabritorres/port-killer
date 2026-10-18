@@ -1,5 +1,11 @@
 # PortKiller
 
+This fork adds saved projects and service groups to the macOS menu bar app.
+See the [fork changelog](CHANGELOG.md), [project guide and local build instructions](PROJECTS.md),
+and [original PortKiller repository](https://github.com/productdevbook/port-killer).
+The installation links below refer to the original app; build this fork locally
+to use the project launcher.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/productdevbook/port-killer/refs/heads/main/platforms/macos/Resources/AppIcon.svg" alt="PortKiller Icon" width="128" height="128">
 </p>
@@ -46,6 +52,10 @@ Download `.zip` from [GitHub Releases](https://github.com/productdevbook/port-ki
 ## Features
 
 ### Port Management
+
+* **Project groups (macOS extension)** — Save favorite projects with multiple
+  services. Start/stop a group or individual services from the menu bar, see
+  readiness and keep per-service logs. See [usage and development notes](PROJECTS.md).
 - 🔍 Auto-discovers all listening TCP ports
 - ⚡ One-click process termination (graceful + force kill)
 - 🔄 Auto-refresh with configurable interval

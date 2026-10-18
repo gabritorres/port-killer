@@ -65,6 +65,7 @@ extension KeyboardShortcuts.Name {
 @Observable
 @MainActor
 final class AppState {
+    let projectsState = ProjectsState()
     // MARK: - Decomposed State Objects
 
     /// Manages favorite ports (extracted state)
@@ -185,7 +186,7 @@ final class AppState {
         var result: [PortInfo]
 
         switch selectedSidebarItem {
-        case .allPorts, .settings, .sponsors, .kubernetesPortForward, .cloudflareTunnels:
+        case .allPorts, .settings, .sponsors, .kubernetesPortForward, .cloudflareTunnels, .projects:
             result = ports
         case .favorites:
             var activePorts = Set<Int>()

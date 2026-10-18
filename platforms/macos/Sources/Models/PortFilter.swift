@@ -60,6 +60,7 @@ struct PortFilter: Equatable, Sendable {
 
 enum SidebarItem: Hashable, Identifiable, Sendable {
     case allPorts
+    case projects
     case favorites
     case watched
     case processType(ProcessType)
@@ -71,6 +72,7 @@ enum SidebarItem: Hashable, Identifiable, Sendable {
     var id: String {
         switch self {
         case .allPorts: return "all"
+        case .projects: return "projects"
         case .favorites: return "favorites"
         case .watched: return "watched"
         case .processType(let type): return "type-\(type.rawValue)"
@@ -84,6 +86,7 @@ enum SidebarItem: Hashable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .allPorts: return "All Ports"
+        case .projects: return "Projects"
         case .favorites: return "Favorites"
         case .watched: return "Watched"
         case .processType(let type): return type.rawValue
@@ -98,13 +101,14 @@ enum SidebarItem: Hashable, Identifiable, Sendable {
     var showsPorts: Bool {
         switch self {
         case .allPorts, .favorites, .watched, .processType: return true
-        case .kubernetesPortForward, .cloudflareTunnels, .sponsors, .settings: return false
+        case .kubernetesPortForward, .cloudflareTunnels, .sponsors, .settings, .projects: return false
         }
     }
 
     var icon: String {
         switch self {
         case .allPorts: return "list.bullet"
+        case .projects: return "folder"
         case .favorites: return "star.fill"
         case .watched: return "eye.fill"
         case .processType(let type): return type.icon
