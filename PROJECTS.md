@@ -72,6 +72,23 @@ Projects must be stopped before editing or removal. Removal deletes only the
 saved configuration. Logs are private to the user and are overwritten at each
 start, under `~/Library/Application Support/PortKiller/ProjectLogs/`.
 
+### Login and menu bar
+
+Enable **Settings → General → Launch at Login** to open the app when signing in
+to macOS. This existing setting starts PortKiller, not saved projects; use
+**Start Group** when needed. Closing the main window leaves the menu bar app
+running. Quitting the app stops the services it launched.
+
+Some frameworks can detach their development server automatically. Use their
+foreground mode so PortKiller retains ownership of the server process. Also avoid
+passing the same host flag both in a package script and in its saved arguments.
+Choose distinct ports for projects that may run together, and select the required
+runtime explicitly if it is unavailable in a non-interactive login shell.
+
+A recently closed socket can temporarily make the port conflict probe report a
+busy port even after its listener has stopped. Wait for macOS to release the
+socket and retry; the launcher does not stop another process to resolve conflicts.
+
 ## Development and verification
 
 ### Open the local development app
@@ -127,6 +144,12 @@ existing servers were recognized as external; Start Group launched the two
 remaining services and both returned HTTP 200. Stop Group closed those two
 listeners while leaving all five external listeners active.
 
+The five external services were later stopped and relaunched through PortKiller.
+All seven then appeared ready, responded with HTTP 200 and had process ancestry
+under the app. Four additional web projects were imported as favorites, started
+through the UI, checked over HTTP and stopped. Their configurations remain local;
+no project-specific paths or credentials are shipped with this fork.
+
 `SmokeTests/ProjectGroupsSmoke.swift` additionally exercises old configuration
 decoding, atomic/idempotent imports, saved groups, start ordering, group isolation,
 manual-only services, temporary shared variables and external identity checks.
@@ -145,9 +168,10 @@ swiftc -parse-as-library -swift-version 6 -I "$PRODUCTS/Modules" \
 
 Keep `LICENSE` and the original copyright notice when publishing. A GitHub fork
 can use your repository as `origin` and the original repository as `upstream`.
-Development takes place on `codex/project-launcher` in the
+The project launcher is maintained on `main` in the
 [`gabritorres/port-killer` fork](https://github.com/gabritorres/port-killer),
-with the original repository configured as `upstream`.
+with the original repository configured as `upstream`. Its initial implementation
+was developed on `codex/project-launcher`; see the [fork changelog](CHANGELOG.md).
 
 Before distributing a separately branded app, give it its own bundle identifier
 and update configuration. The original packaging script still uses the original
