@@ -36,6 +36,28 @@ start, under `~/Library/Application Support/PortKiller/ProjectLogs/`.
 
 ## Development and verification
 
+### Open the local development app
+
+From `platforms/macos`:
+
+```sh
+./scripts/build-dev-app.sh
+open ".build/development/PortKiller Projects Dev.app"
+```
+
+Quit the development app before rebuilding. This script builds for the current
+Mac, packages the resources and Sparkle framework, and signs the app locally.
+It also works with Command Line Tools by temporarily omitting dependency previews.
+It adjusts ignored SwiftPM resource accessors for the standard app bundle layout.
+
+The development app has its own identifier (`com.gabritorres.portkiller.projects.dev`),
+separate preferences and project logs under
+`~/Library/Application Support/PortKiller Projects Dev/ProjectLogs/`.
+The original project's Sparkle feed is removed and updates are disabled in code
+for this build, so they cannot replace the experimental app.
+
+### Compiler and automated checks
+
 From `platforms/macos`:
 
 ```sh
@@ -55,7 +77,12 @@ model, state and process launcher passed for persistence, literal folder paths,
 stdout/stderr logs, exit errors, duplicate starts, process-group cleanup,
 SIGTERM/SIGKILL shutdown and occupied IPv4 ports. The full Swift Testing suite
 still needs to run with Xcode; the new suite additionally covers invalid recipes
-and IPv6 port conflicts. UI behavior has not yet been checked in a running app.
+and IPv6 port conflicts.
+
+The packaged development app has also been checked in the native macOS UI:
+adding a favorite, finding it in the menu bar, starting an HTTP demo, receiving
+its page, and pressing Stop in the main window. Stop returned the project to
+Stopped and closed its HTTP listener. App signature verification also passed.
 
 ## Publishing a fork
 

@@ -21,8 +21,10 @@ final class ProjectsState {
     init(key: Defaults.Key<[ProjectConfiguration]> = .savedProjects, logsDirectory: URL? = nil) {
         self.key = key
         projects = Defaults[key]
+        let appFolder = Bundle.main.object(forInfoDictionaryKey: "PKDevelopmentBuild") as? Bool == true
+            ? "PortKiller Projects Dev" : "PortKiller"
         self.logsDirectory = logsDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("PortKiller/ProjectLogs", isDirectory: true)
+            .appendingPathComponent("\(appFolder)/ProjectLogs", isDirectory: true)
     }
 
     var sortedProjects: [ProjectConfiguration] {

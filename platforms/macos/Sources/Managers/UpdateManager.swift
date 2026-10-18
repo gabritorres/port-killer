@@ -23,7 +23,7 @@ final class UpdateManager {
 
     /// Whether the updater is ready to check for updates
     /// Default to true in app bundles so menu command stays enabled before initialization.
-    var canCheckForUpdates = Bundle.main.bundlePath.hasSuffix(".app")
+    var canCheckForUpdates = UpdateManager.updatesAllowed
 
     /// Timestamp of the last update check
     var lastUpdateCheckDate: Date?
@@ -37,8 +37,9 @@ final class UpdateManager {
     private var isInitialized = false
 
     /// Check if running from a proper app bundle (not swift run)
-    private static var isRunningFromBundle: Bool {
-        Bundle.main.bundlePath.hasSuffix(".app")
+    private static var updatesAllowed: Bool {
+        Bundle.main.bundlePath.hasSuffix(".app") &&
+            Bundle.main.object(forInfoDictionaryKey: "PKDevelopmentBuild") as? Bool != true
     }
 
     // MARK: - Computed Properties
@@ -84,7 +85,7 @@ final class UpdateManager {
         guard !isInitialized else { return }
         isInitialized = true
 
-        guard Self.isRunningFromBundle else {
+        guard Self.updatesAllowed else {
             return
         }
 
