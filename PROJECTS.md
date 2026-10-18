@@ -6,12 +6,47 @@ project and its MIT license remain intact. Windows and Linux are unchanged.
 ## Usage
 
 1. Open **Projects** in the main window, or **Projects → Manage…** in the menu bar.
-2. Choose **Add Project** and enter a name, folder and foreground start command
+2. Choose **Add Service** and enter a name, folder and foreground start command
    (for example, `pnpm dev`, `npm run dev` or `uv run python app.py`).
 3. Optionally enter the expected TCP port. It is checked for conflicts before
    launch and used by the Open button; it does not change your server's port.
 4. Mark the project as a favorite to keep it in the menu bar while stopped.
 5. Press **Start** or **Stop**. Running non-favorites also remain in the menu bar.
+
+### Multiple services in one project
+
+Give related services the same **Project / group** name. The main window groups
+them together, and the menu bar offers a collapsible project with **Start Group**
+and **Stop Group** controls plus individual start/stop, browser and log actions.
+An ungrouped service keeps working as before; old saved configurations migrate
+without losing their IDs, favorites or commands.
+
+Use **Start order** to launch lower numbers first. This orders process launches;
+it does not wait for dependency health. Turn off **Include in Start Group** for
+shared runtimes or optional services you prefer to start manually. Stop Group
+stops owned services in reverse order, including manually started group members.
+Unrelated groups and ungrouped services are unaffected.
+
+If a port is already occupied by a process from the configured folder, the service
+shows **Running externally**. Group start skips it and group stop leaves it alone.
+Stop that service in its original terminal before starting it under PortKiller.
+An optional `externalProcessName` field can identify a shared runtime by exact
+process name and port instead of folder. No external process is adopted or killed.
+An unrelated process on the expected port produces a conflict instead.
+
+For linked services needing the same ephemeral credential, enter comma-separated
+**Shared temporary variables** names. PortKiller generates random values scoped to
+the project, keeps them only in memory for this application session, and injects
+only the variables requested by each service. Restarting one service keeps the
+value while the app runs. A linked external service cannot receive that value;
+PortKiller asks you to start linked services together rather than silently mixing
+incompatible sessions. Do not copy actual secret values into saved commands.
+
+**Import…** loads a local JSON array of saved service configurations. All entries
+are validated before saving. Matching IDs update in place; other saved services
+are retained. An invalid entry or a replacement for an owned running service
+rejects the whole import. Imports do not start anything. Keep machine-specific
+paths and commands outside public repositories.
 
 Commands run in a non-interactive login zsh shell. The folder is passed as a
 separate argument and selected after shell initialization. If your runtime is
@@ -26,7 +61,10 @@ exits. Closing PortKiller stops the projects it launched. It does not adopt or
 stop externally started services through the project controls. The existing
 port-management actions retain their original behavior.
 
-**Running** means the command is alive, not that an HTTP health check passed.
+**Starting** means the command is alive but its configured port has not been seen.
+**Listening** and the group's ready count mean a TCP listener with a matching
+folder/process identity was detected, not that an HTTP health check passed.
+Services without an expected port are ready while their command is alive.
 Expected ports are optional. Port checks cannot prevent another application
 from taking a port between checking it and starting the server.
 
@@ -83,6 +121,25 @@ The packaged development app has also been checked in the native macOS UI:
 adding a favorite, finding it in the menu bar, starting an HTTP demo, receiving
 its page, and pressing Stop in the main window. Stop returned the project to
 Stopped and closed its HTTP listener. App signature verification also passed.
+
+The group extension was verified against a local seven-service project. Five
+existing servers were recognized as external; Start Group launched the two
+remaining services and both returned HTTP 200. Stop Group closed those two
+listeners while leaving all five external listeners active.
+
+`SmokeTests/ProjectGroupsSmoke.swift` additionally exercises old configuration
+decoding, atomic/idempotent imports, saved groups, start ordering, group isolation,
+manual-only services, temporary shared variables and external identity checks.
+After building once, run it without Xcode's Testing module:
+
+```sh
+PRODUCTS=$(swift build --show-bin-path)
+swiftc -parse-as-library -swift-version 6 -I "$PRODUCTS/Modules" \
+  Sources/Models/ProjectConfiguration.swift Sources/Services/ProjectProcess.swift \
+  Sources/State/ProjectsState.swift SmokeTests/ProjectGroupsSmoke.swift \
+  "$PRODUCTS"/Defaults.build/*.o -o .build/project-groups-smoke
+.build/project-groups-smoke
+```
 
 ## Publishing a fork
 

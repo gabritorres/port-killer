@@ -12,7 +12,7 @@ struct SidebarView: View {
         List(selection: $state.selectedSidebarItem) {
             Section("Categories") {
                 sidebarRow(.allPorts, count: appState.ports.count)
-                sidebarRow(.projects, count: appState.projectsState.projects.count)
+                sidebarRow(.projects, count: appState.projectsState.sections().count)
 
                 // Favorites row with add button
                 favoritesRow

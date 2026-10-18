@@ -52,6 +52,9 @@ extension AppState {
     /// resolved at scan time) replace stale entries.
     @discardableResult
     func updatePorts(_ newPorts: [PortInfo]) -> Bool {
+        projectsState.updateListeners(newPorts.map {
+            ProjectListener(port: $0.port, directory: $0.workingDirectory, processName: $0.processName)
+        })
         guard Set(newPorts) != Set(ports) else { return false }
 
         ports = newPorts.sorted { a, b in

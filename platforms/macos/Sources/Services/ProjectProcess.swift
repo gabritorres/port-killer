@@ -8,7 +8,7 @@ final class ProjectProcess {
     private(set) var pid: pid_t = 0
     private var reaped = false
 
-    init(project: ProjectConfiguration, logURL: URL) throws {
+    init(project: ProjectConfiguration, logURL: URL, environment overrides: [String: String] = [:]) throws {
         var actions: posix_spawn_file_actions_t?
         var attributes: posix_spawnattr_t?
         var code = posix_spawn_file_actions_init(&actions)
@@ -32,7 +32,8 @@ final class ProjectProcess {
         // saved command is evaluated. cd follows login-shell initialization.
         let arguments = ["/bin/zsh", "-l", "-c", "cd -- \"$1\" || exit\neval \"$2\"", "portkiller-project", project.directory, project.command]
         let argv = arguments.map { strdup($0) } + [nil]
-        let environment = ProcessInfo.processInfo.environment.map { strdup("\($0.key)=\($0.value)") } + [nil]
+        let inheritedEnvironment = ProcessInfo.processInfo.environment.merging(overrides) { _, new in new }
+        let environment = inheritedEnvironment.map { strdup("\($0.key)=\($0.value)") } + [nil]
         defer {
             argv.forEach { free($0) }
             environment.forEach { free($0) }
