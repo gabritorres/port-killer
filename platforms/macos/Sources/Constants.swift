@@ -6,6 +6,9 @@ import Foundation
  * AppInfo provides application metadata and external links.
  */
 enum AppInfo {
+    static let name = Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String ?? "PortKiller"
+    static let maintainer = Bundle.main.infoDictionary?["PKMaintainer"] as? String ?? "productdevbook"
+
     /// Application version from bundle info (e.g., "1.3.0")
     static let version: String = {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.3.0"
@@ -22,16 +25,16 @@ enum AppInfo {
     }()
 
     /// GitHub repository URL
-    static let githubRepo = "https://github.com/productdevbook/port-killer"
+    static let githubRepo = Bundle.main.infoDictionary?["PKRepositoryURL"] as? String ?? "https://github.com/productdevbook/port-killer"
 
     /// GitHub releases page URL
-    static let githubReleases = "https://github.com/productdevbook/port-killer/releases"
+    static let githubReleases = "\(githubRepo)/releases"
 
     /// GitHub sponsors page URL
     static let githubSponsors = "https://github.com/sponsors/productdevbook"
 
     /// GitHub issues page URL
-    static let githubIssues = "https://github.com/productdevbook/port-killer/issues"
+    static let githubIssues = "\(githubRepo)/issues"
 
     /// Twitter/X profile URL
     static let twitterURL = "https://x.com/productdevbook"

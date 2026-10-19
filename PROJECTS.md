@@ -186,7 +186,32 @@ Native UI checks also covered cancelling a takeover, confirming it for a disposa
 HTTP server, and immediately stopping/restarting the real backend on port 3001.
 The backend and the other six services responded successfully after the app update.
 
-## Publishing a fork
+## Public beta and publishing
+
+The public **PortKiller Projects** app uses identifier
+`com.gabritorres.portkiller.projects` and project logs under
+`~/Library/Application Support/PortKiller Projects/ProjectLogs/`. It has separate
+preferences from the development app and upstream PortKiller. Automatic updates
+are disabled for this beta. See [INSTALL.md](INSTALL.md) and the
+[public releases](https://github.com/gabritorres/port-killer/releases).
+
+Build a universal, ad-hoc signed public app with:
+
+```sh
+cd platforms/macos
+./scripts/build-projects-release.sh 0.1.0
+```
+
+The script builds arm64 and x86_64 release binaries, packages resource bundles,
+retains licenses, checks for embedded user paths and generates DMG, ZIP and
+checksums in `.build/projects-release/`. It copies no saved projects or user data.
+The resulting beta is not Developer ID signed or Apple notarized. The manual
+**Projects Release** workflow runs tests and builds the same archives in GitHub
+Actions; it refuses to replace assets for an existing release.
+
+The README screenshots were captured from the running application and anonymized
+using OpenAI image editing. Personal project names, paths and an example PID were
+replaced. Unedited originals remain local and are not committed.
 
 Keep `LICENSE` and the original copyright notice when publishing. A GitHub fork
 can use your repository as `origin` and the original repository as `upstream`.
@@ -195,7 +220,7 @@ The project launcher is maintained on `main` in the
 with the original repository configured as `upstream`. Its initial implementation
 was developed on `codex/project-launcher`; see the [fork changelog](CHANGELOG.md).
 
-Before distributing a separately branded app, give it its own bundle identifier
-and update configuration. The original packaging script still uses the original
-application identity and Sparkle feed; a distributed fork needs its own release
-channel rather than replacing local changes with upstream binaries.
+The original `build-app.sh` remains the upstream packager. Use
+`build-projects-release.sh` for this fork's public download so the bundle identity
+and update settings are correct. The original project's release workflow uses
+`v*` tags; this fork uses `projects-v*` tags and its own publishing workflow.
