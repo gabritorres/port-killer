@@ -3,6 +3,18 @@
 Changes maintained in [gabritorres/port-killer](https://github.com/gabritorres/port-killer),
 based on the original MIT-licensed PortKiller. These additions apply to macOS.
 
+## 2026-10-19 — Restarting services and resolving port conflicts
+
+- Fix false busy-port errors immediately after stopping a service, including
+  IPv4 and IPv6 connections in TIME_WAIT.
+- Add **Free :port & Start…** to project services in the main window and menu bar.
+  It lists the listening processes for confirmation, then stops them and starts
+  the selected service. Ordinary Start and group actions preserve external owners.
+- Revalidate process creation time and socket ownership before sending signals;
+  abort if the port changes owners during the operation.
+- Add executable regression checks for immediate restart, resistant listeners,
+  stale identities and ownership changes.
+
 ## 2026-10-18 — Saved projects and service groups
 
 - Save foreground start commands, working folders and optional TCP ports.

@@ -102,7 +102,12 @@ final class ProjectProcess {
 
     private static func checkBind(_ fd: Int32, address: UnsafePointer<sockaddr>, length: socklen_t, port: Int) throws {
         guard bind(fd, address, length) == 0 else {
-            if errno == EADDRINUSE { throw ProjectLaunchError.occupied(port) }
+            if errno == EADDRINUSE {
+                // A recently closed connection can prevent a plain bind while
+                // no server remains. Do not turn TIME_WAIT into a port conflict.
+                if try ProjectPortConflict.listenerNames(on: port).isEmpty { return }
+                throw ProjectLaunchError.occupied(port)
+            }
             throw ProjectLaunchError.system("Check port", errno)
         }
     }

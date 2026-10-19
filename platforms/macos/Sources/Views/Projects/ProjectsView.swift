@@ -44,7 +44,7 @@ struct ProjectsView: View {
                                         }
                                         .buttonStyle(.borderless)
                                         .font(.caption)
-                                        .disabled(manager.running.contains(project.id))
+                                        .disabled(manager.running.contains(project.id) || manager.reclaiming.contains(project.id))
                                     }
                                     Divider()
                                 }
