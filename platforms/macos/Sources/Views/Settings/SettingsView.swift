@@ -62,7 +62,7 @@ struct SettingsView: View {
                         SettingsRowContainer {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("PortKiller \(AppInfo.versionString)")
+                                    Text("\(AppInfo.name) \(AppInfo.versionString)")
                                         .fontWeight(.medium)
                                     if let lastCheck = updateManager.lastUpdateCheckDate {
                                         Text("Last checked \(lastCheck.formatted(.relative(presentation: .named)))")
@@ -166,7 +166,7 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Developer")
                                         .fontWeight(.medium)
-                                    Text("productdevbook")
+                                    Text(AppInfo.maintainer)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }

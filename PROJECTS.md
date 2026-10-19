@@ -31,8 +31,18 @@ If a port is already occupied by a process from the configured folder, the servi
 shows **Running externally**. Group start skips it and group stop leaves it alone.
 Stop that service in its original terminal before starting it under PortKiller.
 An optional `externalProcessName` field can identify a shared runtime by exact
-process name and port instead of folder. No external process is adopted or killed.
+process name and port instead of folder. Ordinary Start/Stop and group actions
+never adopt or stop external processes.
 An unrelated process on the expected port produces a conflict instead.
+
+If a real listener prevents launch, **Free :port & Start…** appears beside the
+service in both the main window and menu bar. It also appears for externally
+started services. Review the process names and PIDs in the confirmation before
+choosing **Stop Processes & Start**. Cancel leaves those processes running.
+The action sends SIGTERM, waits, and escalates to SIGKILL for confirmed listeners
+that remain. It targets listener PIDs, never their parent or entire process group.
+If the port gets a different owner, the action aborts and requires fresh review.
+Group startup never automatically takes over someone else's port.
 
 For linked services needing the same ephemeral credential, enter comma-separated
 **Shared temporary variables** names. PortKiller generates random values scoped to
@@ -57,8 +67,8 @@ when you save a project or open PortKiller.
 Keep commands in the foreground: do not add `&`, `nohup`, or a daemon flag.
 Each launch owns a separate process group. Stop sends SIGTERM and escalates to
 SIGKILL after three seconds; remaining workers are cleaned up when the leader
-exits. Closing PortKiller stops the projects it launched. It does not adopt or
-stop externally started services through the project controls. The existing
+exits. Closing PortKiller stops the projects it launched. Ordinary project controls
+do not adopt or stop externally started services. The existing
 port-management actions retain their original behavior.
 
 **Starting** means the command is alive but its configured port has not been seen.
@@ -85,9 +95,11 @@ passing the same host flag both in a package script and in its saved arguments.
 Choose distinct ports for projects that may run together, and select the required
 runtime explicitly if it is unavailable in a non-interactive login shell.
 
-A recently closed socket can temporarily make the port conflict probe report a
-busy port even after its listener has stopped. Wait for macOS to release the
-socket and retry; the launcher does not stop another process to resolve conflicts.
+A recently closed connection can remain in macOS's TIME_WAIT state. If the bind
+probe reports a conflict, PortKiller checks actual TCP listeners before showing a
+busy-port error. This allows immediate restarts without killing a process when
+only a closed connection remains. The saved command must still bind its requested
+port; PortKiller does not rewrite a framework's port settings.
 
 ## Development and verification
 
@@ -158,13 +170,48 @@ After building once, run it without Xcode's Testing module:
 ```sh
 PRODUCTS=$(swift build --show-bin-path)
 swiftc -parse-as-library -swift-version 6 -I "$PRODUCTS/Modules" \
-  Sources/Models/ProjectConfiguration.swift Sources/Services/ProjectProcess.swift \
+  Sources/Models/ProjectConfiguration.swift Sources/Services/ProjectPortConflict.swift \
+  Sources/Services/ProjectProcess.swift \
   Sources/State/ProjectsState.swift SmokeTests/ProjectGroupsSmoke.swift \
   "$PRODUCTS"/Defaults.build/*.o -o .build/project-groups-smoke
 .build/project-groups-smoke
 ```
 
-## Publishing a fork
+Replace `SmokeTests/ProjectGroupsSmoke.swift` with
+`SmokeTests/ProjectPortConflictSmoke.swift` and use a separate output executable
+to run the port-conflict checks. They reproduce IPv4/IPv6 TIME_WAIT after a real
+TCP exchange, exercise graceful/forced conflict handling, and verify that stale
+process identities and intervening listeners cannot be taken over silently.
+Native UI checks also covered cancelling a takeover, confirming it for a disposable
+HTTP server, and immediately stopping/restarting the real backend on port 3001.
+The backend and the other six services responded successfully after the app update.
+
+## Public beta and publishing
+
+The public **PortKiller Projects** app uses identifier
+`com.gabritorres.portkiller.projects` and project logs under
+`~/Library/Application Support/PortKiller Projects/ProjectLogs/`. It has separate
+preferences from the development app and upstream PortKiller. Automatic updates
+are disabled for this beta. See [INSTALL.md](INSTALL.md) and the
+[public releases](https://github.com/gabritorres/port-killer/releases).
+
+Build a universal, ad-hoc signed public app with:
+
+```sh
+cd platforms/macos
+./scripts/build-projects-release.sh 0.1.0
+```
+
+The script builds arm64 and x86_64 release binaries, packages resource bundles,
+retains licenses, checks for embedded user paths and generates DMG, ZIP and
+checksums in `.build/projects-release/`. It copies no saved projects or user data.
+The resulting beta is not Developer ID signed or Apple notarized. The manual
+**Projects Release** workflow runs tests and builds the same archives in GitHub
+Actions; it refuses to replace assets for an existing release.
+
+The README screenshots were captured from the running application and anonymized
+using OpenAI image editing. Personal project names, paths and an example PID were
+replaced. Unedited originals remain local and are not committed.
 
 Keep `LICENSE` and the original copyright notice when publishing. A GitHub fork
 can use your repository as `origin` and the original repository as `upstream`.
@@ -173,7 +220,7 @@ The project launcher is maintained on `main` in the
 with the original repository configured as `upstream`. Its initial implementation
 was developed on `codex/project-launcher`; see the [fork changelog](CHANGELOG.md).
 
-Before distributing a separately branded app, give it its own bundle identifier
-and update configuration. The original packaging script still uses the original
-application identity and Sparkle feed; a distributed fork needs its own release
-channel rather than replacing local changes with upstream binaries.
+The original `build-app.sh` remains the upstream packager. Use
+`build-projects-release.sh` for this fork's public download so the bundle identity
+and update settings are correct. The original project's release workflow uses
+`v*` tags; this fork uses `projects-v*` tags and its own publishing workflow.

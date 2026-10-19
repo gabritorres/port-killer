@@ -9,7 +9,7 @@ struct ProjectGroupHeader: View {
     private var services: [ProjectConfiguration] { manager.projects.filter { $0.groupName == name } }
     private var activeCount: Int { services.filter { manager.isReady($0.id) }.count }
     private var externalCount: Int { services.filter { manager.externalRunning.contains($0.id) }.count }
-    private var hasOwned: Bool { services.contains { manager.running.contains($0.id) } }
+    private var hasOwned: Bool { services.contains { manager.running.contains($0.id) || manager.reclaiming.contains($0.id) } }
     private var canStart: Bool {
         services.contains { $0.startWithGroup != false && !manager.isActive($0.id) }
     }

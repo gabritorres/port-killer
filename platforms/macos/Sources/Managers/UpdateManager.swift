@@ -39,6 +39,7 @@ final class UpdateManager {
     /// Check if running from a proper app bundle (not swift run)
     private static var updatesAllowed: Bool {
         Bundle.main.bundlePath.hasSuffix(".app") &&
+            Bundle.main.object(forInfoDictionaryKey: "PKDisableUpdates") as? Bool != true &&
             Bundle.main.object(forInfoDictionaryKey: "PKDevelopmentBuild") as? Bool != true
     }
 

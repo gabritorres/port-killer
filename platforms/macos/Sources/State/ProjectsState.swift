@@ -15,6 +15,9 @@ final class ProjectsState {
     private(set) var errors: [UUID: String] = [:]
     private(set) var externalRunning: Set<UUID> = []
     private(set) var listening: Set<UUID> = []
+    private(set) var portConflicts: Set<UUID> = []
+    private(set) var reclaiming: Set<UUID> = []
+    @ObservationIgnored private var cancelledReclaims: Set<UUID> = []
     @ObservationIgnored private let key: Defaults.Key<[ProjectConfiguration]>
     @ObservationIgnored private let logsDirectory: URL
     @ObservationIgnored private var processes: [UUID: ProjectProcess] = [:]
@@ -25,8 +28,9 @@ final class ProjectsState {
     init(key: Defaults.Key<[ProjectConfiguration]> = .savedProjects, logsDirectory: URL? = nil) {
         self.key = key
         projects = Defaults[key]
-        let appFolder = Bundle.main.object(forInfoDictionaryKey: "PKDevelopmentBuild") as? Bool == true
-            ? "PortKiller Projects Dev" : "PortKiller"
+        let appFolder = Bundle.main.object(forInfoDictionaryKey: "PKProjectDataFolder") as? String ??
+            (Bundle.main.object(forInfoDictionaryKey: "PKDevelopmentBuild") as? Bool == true
+                ? "PortKiller Projects Dev" : "PortKiller")
         self.logsDirectory = logsDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("\(appFolder)/ProjectLogs", isDirectory: true)
     }
@@ -64,7 +68,7 @@ final class ProjectsState {
         }
     }
 
-    func isActive(_ id: UUID) -> Bool { running.contains(id) || externalRunning.contains(id) }
+    func isActive(_ id: UUID) -> Bool { running.contains(id) || externalRunning.contains(id) || reclaiming.contains(id) }
 
     func isReady(_ id: UUID) -> Bool {
         externalRunning.contains(id) || (running.contains(id) &&
@@ -97,7 +101,7 @@ final class ProjectsState {
         guard Set(incoming.map(\.id)).count == incoming.count else {
             throw ProjectLaunchError.invalid("The import contains duplicate service IDs.")
         }
-        guard !incoming.contains(where: { running.contains($0.id) }) else {
+        guard !incoming.contains(where: { running.contains($0.id) || reclaiming.contains($0.id) }) else {
             throw ProjectLaunchError.invalid("Stop services before replacing their configuration.")
         }
         let validated = try incoming.map { try $0.validated() }
@@ -122,7 +126,7 @@ final class ProjectsState {
     }
 
     func save(_ project: ProjectConfiguration) throws {
-        guard !running.contains(project.id) else { throw ProjectLaunchError.invalid("Stop the project before editing it.") }
+        guard !running.contains(project.id), !reclaiming.contains(project.id) else { throw ProjectLaunchError.invalid("Stop the project before editing it.") }
         let valid = try project.validated()
         if let index = projects.firstIndex(where: { $0.id == valid.id }) { projects[index] = valid }
         else { projects.append(valid) }
@@ -132,7 +136,7 @@ final class ProjectsState {
     }
 
     func remove(_ id: UUID) {
-        guard !running.contains(id) else { return }
+        guard !running.contains(id), !reclaiming.contains(id) else { return }
         projects.removeAll { $0.id == id }
         Defaults[key] = projects
         errors[id] = nil
@@ -150,8 +154,9 @@ final class ProjectsState {
     }
 
     func start(_ id: UUID) {
-        guard !running.contains(id), let saved = projects.first(where: { $0.id == id }) else { return }
+        guard !running.contains(id), !reclaiming.contains(id), let saved = projects.first(where: { $0.id == id }) else { return }
         errors[id] = nil
+        portConflicts.remove(id)
         if externalRunning.contains(id) {
             // A listener may have stopped since the last scan. Verify that its
             // port is still occupied before deciding to skip a duplicate start.
@@ -197,12 +202,16 @@ final class ProjectsState {
                     try? await Task.sleep(for: .milliseconds(250))
                 }
             }
+        } catch ProjectLaunchError.occupied(let port) {
+            portConflicts.insert(id)
+            errors[id] = ProjectLaunchError.occupied(port).localizedDescription
         } catch {
             errors[id] = error.localizedDescription
         }
     }
 
     func stop(_ id: UUID) {
+        if reclaiming.contains(id) { cancelledReclaims.insert(id); return }
         guard let process = processes[id], !stopping.contains(id) else { return }
         stopping.insert(id)
         process.signal(SIGTERM)
@@ -214,9 +223,57 @@ final class ProjectsState {
     }
 
     func shutdown() async {
-        for id in running { stop(id) }
-        while !running.isEmpty {
+        for id in running.union(reclaiming) { stop(id) }
+        while !running.isEmpty || !reclaiming.isEmpty {
             try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+}
+
+extension ProjectsState {
+    func inspectPort(for id: UUID) async throws -> ProjectPortConflict {
+        guard !running.contains(id), !reclaiming.contains(id),
+              let port = projects.first(where: { $0.id == id })?.port else {
+            throw ProjectLaunchError.invalid("Stop the service and set its port before continuing.")
+        }
+        return try await Task.detached { try ProjectPortConflict.inspect(port) }.value
+    }
+
+    func reclaimPortAndStart(_ id: UUID, confirmed: ProjectPortConflict) async {
+        guard !running.contains(id), !reclaiming.contains(id),
+              projects.first(where: { $0.id == id })?.port == confirmed.port else { return }
+        reclaiming.insert(id)
+        errors[id] = nil
+        defer {
+            reclaiming.remove(id)
+            cancelledReclaims.remove(id)
+        }
+        do {
+            guard !cancelledReclaims.contains(id) else { return }
+            try await Task.detached { try confirmed.signal(SIGTERM) }.value
+            var current = try await waitForPort(confirmed, id: id)
+            guard !cancelledReclaims.contains(id) else { return }
+            if !current.owners.isEmpty {
+                try await Task.detached { try confirmed.signal(SIGKILL) }.value
+                current = try await waitForPort(confirmed, id: id)
+            }
+            guard !cancelledReclaims.contains(id) else { return }
+            guard current.owners.isEmpty else { throw ProjectLaunchError.occupied(confirmed.port) }
+            externalRunning.remove(id)
+            reclaiming.remove(id)
+            start(id)
+        } catch {
+            if !cancelledReclaims.contains(id) { errors[id] = error.localizedDescription }
+        }
+    }
+
+    private func waitForPort(_ confirmed: ProjectPortConflict, id: UUID) async throws -> ProjectPortConflict {
+        let deadline = Date().addingTimeInterval(2)
+        while true {
+            let current = try await Task.detached { try ProjectPortConflict.inspect(confirmed.port) }.value
+            try confirmed.verify(current)
+            if current.owners.isEmpty || Date() >= deadline || cancelledReclaims.contains(id) { return current }
+            try await Task.sleep(for: .milliseconds(100))
         }
     }
 }

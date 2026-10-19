@@ -1,5 +1,10 @@
 # Contributing
 
+For this fork's macOS project launcher, use the development and public beta build
+instructions in [PROJECTS.md](PROJECTS.md). Public downloads and their signing
+status are documented in [INSTALL.md](INSTALL.md). The original cross-platform
+development instructions follow.
+
 ## Requirements
 
 - **macOS 15.0+** / **Windows 10+** / **Linux**
